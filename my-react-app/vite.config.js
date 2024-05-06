@@ -10,17 +10,5 @@ const outDir = resolve(__dirname, 'dist')
 export default defineConfig({
   root,
   plugins: [react()],
-  build: {
-    outDir,
-    emptyOutDir: true,
-    rollupOptions: {
-      input: {
-        main: resolve(root, 'index.html'),
-        login: resolve(root, 'login', 'login.html'),
-        register: resolve(root, 'register', 'register.html'),
-        dashboard: resolve(root, 'dashboard', 'dashboard.html'),
-      }
-    }
-  }
   
 })
