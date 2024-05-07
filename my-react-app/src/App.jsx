@@ -11,9 +11,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
     localStorage.getItem("isLoggedIn") === "true"
   );
-  const [isAdmin, setIsAdmin] = useState(
-    localStorage.getItem("isAdmin") === "true"
-  );
+  const [isAdmin, setIsAdmin] = useState(false);
   const getAdminStatus = async () => {
     try {
       const response2 = await fetch("http://localhost:1323/api/isadmin", {
@@ -49,7 +47,6 @@ function App() {
       setIsAdmin(false); // Ensure isAdmin is set to false when logged out
     }
   }, [isLoggedIn]); // Dependency array includes isLoggedIn
-  
 
   function logout() {
     localStorage.removeItem("isLoggedIn");
@@ -67,11 +64,12 @@ function App() {
         </Link>
         {isLoggedIn ? (
           <>
-            {isAdmin && (
+            {isAdmin == "true" && (
               <Link className="nav-link me-2" to="/admin-dashboard">
                 Admin Dashboard
               </Link>
-            )}
+              
+            ) }
             <a href="/" onClick={logout}>
               Logout
             </a>
