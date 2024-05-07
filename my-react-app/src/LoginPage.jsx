@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 import "./LoginPage.css";
-function LoginPage(props) {
+function LoginPage({ setIsLoggedIn }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,9 +25,11 @@ function LoginPage(props) {
       if (response.ok) {
         const data = await response.json(); // Parse JSON only if response is OK
         setSuccessful(true);
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('token', data);
-        navigate('/dashboard');
+        localStorage.setItem("isLoggedIn", "true");
+        setIsLoggedIn(true);
+        localStorage.setItem("token", data);
+        localStorage.setItem('name', name);
+        navigate("/dashboard");
       } else {
         const errorData = await response.text(); // Use .text() if the response might not be JSON
         throw new Error(errorData || "Failed to login");
@@ -37,10 +39,9 @@ function LoginPage(props) {
       console.error("Login error:", err);
     } finally {
       setLoading(false);
-      
     }
   };
-  
+
   return (
     <div className="login-container">
       <form className="login-form" onSubmit={handleLogin}>
