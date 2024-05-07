@@ -110,32 +110,22 @@ func register(c echo.Context) error {
 	return c.JSON(http.StatusOK, "Registered")
 }
 
-func csvToJson(data []byte) (string, error) {
-	// Convert byte data to a reader, which can be used by csv.NewReader
+func csvToJson(data []byte) ([]map[string]string, error) {
 	r := csv.NewReader(strings.NewReader(string(data)))
 	records, err := r.ReadAll()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-
-	// The first record is assumed to be headers
 	headers := records[0]
 	var jsonArray []map[string]string
-
 	for _, record := range records[1:] {
-		dataMap := map[string]string{}
+		dataMap := make(map[string]string)
 		for index, value := range record {
 			dataMap[headers[index]] = value
 		}
 		jsonArray = append(jsonArray, dataMap)
 	}
-
-	jsonData, err := json.Marshal(jsonArray)
-	if err != nil {
-		return "", err
-	}
-
-	return string(jsonData), nil
+	return jsonArray, nil
 }
 
 func getData(c echo.Context) error {
@@ -144,29 +134,36 @@ func getData(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, "User not authenticated")
 	}
 	claims := user.Claims.(jwt.MapClaims)
-	// name := claims["name"].(string)
-	roles := claims["roles"].(string)
-
-	var dataFiles []string
-
-	if roles == "admin" {
-		dataFiles = append(dataFiles, "admin.csv")
-	} else if roles == "client" {
-		dataFiles = append(dataFiles, "client.csv") // Client only gets client.csv.
-	} else {
-		return c.JSON(http.StatusForbidden, "Access denied") // If role is neither admin nor client.
+	role, ok := claims["roles"].(string)
+	if !ok {
+		return c.JSON(http.StatusForbidden, "Invalid user role")
 	}
 
-	var combinedData strings.Builder
-	for _, dataFile := range dataFiles {
-		data, err := os.ReadFile(dataFile)
+	var files []string
+	switch role {
+	case "admin":
+		files = append(files, "admin.csv", "client.csv")
+	case "client":
+		files = append(files, "client.csv")
+	default:
+		return c.JSON(http.StatusForbidden, "Access denied")
+	}
+
+	var combinedData []map[string]string
+	for _, file := range files {
+		data, err := os.ReadFile(file)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, "Error reading data file: "+dataFile)
+			return c.JSON(http.StatusInternalServerError, "Error reading data file: "+file)
 		}
-		combinedData.WriteString(string(data) + "\n")
+		jsonData, err := csvToJson(data)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, "Error converting CSV to JSON: "+err.Error())
+		}
+		combinedData = append(combinedData, jsonData...)
 	}
-	// fmt.Println(combinedData.String())
-	return c.Blob(http.StatusOK, "text/csv", []byte(combinedData.String()))
+	fmt.Println(combinedData)
+
+	return c.JSON(http.StatusOK, combinedData)
 }
 
 func JWTMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
@@ -210,15 +207,22 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	e.Use(JWTMiddleware)
 	// CORS middleware
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"http://localhost:5173"}, // For frontend's host and port
 		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "Authorization"},
 	}))
 	e.POST("/login", login)
 	e.POST("/register", register)
-	e.GET("/data", getData)
+
+	g := e.Group("/api")
+	g.Use(JWTMiddleware)
+	g.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:5173"}, // For frontend's host and port
+		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "Authorization"},
+	}))
+	g.GET("/data", getData)
 	e.Logger.Fatal(e.Start(":1323"))
 }
