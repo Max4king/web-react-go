@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './LoginPage.css'
-function LoginPage() {
-  const [email, setEmail] = useState('');
+function RegisterPage() {
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -13,12 +13,12 @@ function LoginPage() {
 
     // Example: POST request to your Golang backend
     try {
-      const response = await fetch('http://localhost:1323', {
+      const response = await fetch('http://yourapi/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name, password }),
       });
 
       const data = await response.json();
@@ -40,14 +40,14 @@ function LoginPage() {
     <div className="login-container">
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <form className="login-form" onSubmit={handleLogin}>
-        <h1>Register</h1>
+        <h1>Login</h1>
         <div>
-          <label htmlFor="email">Email:</label>
+          <label htmlFor="name">Name:</label>
           <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             required
           />
         </div>
@@ -69,4 +69,4 @@ function LoginPage() {
   );
 }
 
-export default LoginPage;
+export default RegisterPage

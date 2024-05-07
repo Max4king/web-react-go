@@ -1,36 +1,39 @@
-import React, { useState } from 'react';
-import './LoginPage.css'
-function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+import React, { useState } from "react";
+import "./LoginPage.css";
+function LoginPage(props) {
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [successful, setSuccessful] = useState(false);
 
   const handleLogin = async (event) => {
     event.preventDefault();
     setLoading(true);
-    setError('');
-
-    // Example: POST request to your Golang backend
+    setSuccessful(false);
+    setError("");
     try {
-      const response = await fetch('http://yourapi/login', {
-        method: 'POST',
+      const response = await fetch("http://localhost:1323/login", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name: name, password: password }),
       });
 
-      const data = await response.json();
-      if (response.ok) {
-        console.log('Login successful:', data);
-        // handle successful login here, e.g., redirecting to the dashboard
+      if (response.ok || props.isLogin) {
+        const data = await response.json(); // Parse JSON only if response is OK
+        console.log("Login successful:", data);
+        setSuccessful(true);
+        props.setIsLogin(true);
+        // Handle successful login here, e.g., redirecting to the dashboard
       } else {
-        throw new Error(data.message || 'Failed to login');
+        const errorData = await response.text(); // Use .text() if the response might not be JSON
+        throw new Error(errorData || "Failed to login");
       }
     } catch (err) {
       setError(err.message);
-      console.error('Login error:', err);
+      console.error("Login error:", err);
     } finally {
       setLoading(false);
     }
@@ -38,16 +41,17 @@ function LoginPage() {
 
   return (
     <div className="login-container">
-      {error && <p style={{ color: 'red' }}>{error}</p>}
       <form className="login-form" onSubmit={handleLogin}>
         <h1>Login</h1>
+        {error && <p style={{ color: "red" }}>{error}</p>}
+        {successful && <p style={{ color: "green" }}>Login Successful</p>}
         <div>
-          <label htmlFor="email">Email:</label>
+          <label htmlFor="name">Name:</label>
           <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             required
           />
         </div>
@@ -61,8 +65,8 @@ function LoginPage() {
             required
           />
         </div>
-        <button type="submit" className='btn btn-primary' disabled={loading}>
-          {loading ? 'Logging in...' : 'Login'}
+        <button type="submit" className="btn btn-primary" disabled={loading}>
+          {loading ? "Logging in..." : "Login"}
         </button>
       </form>
     </div>

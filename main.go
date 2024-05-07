@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/labstack/echo/v4"
-	// For json
+	"github.com/labstack/echo/v4/middleware"
 )
 
 type Data struct {
@@ -17,47 +17,61 @@ type Data struct {
 	Role string
 }
 
-func readDatabase() []Data {
+func readDatabase() ([]Data, error) {
 	content, err := os.ReadFile("./user-login.json")
 	if err != nil {
-		log.Fatal("Error when opening file: ", err)
+		return nil, fmt.Errorf("error opening file: %v", err)
 	}
 
 	var payload []Data
 	err = json.Unmarshal(content, &payload)
 	if err != nil {
-		log.Fatal("Error during Unmarshal(): ", err)
+		return nil, fmt.Errorf("error during Unmarshal: %v", err)
 	}
-	return payload
+	return payload, nil
 }
 
-func getUserRole(c echo.Context) error {
-	name := c.Param("name")
-	password := c.Param("password")
-	payload := readDatabase()
-	for _, user := range payload {
-		if user.User == name {
-			if user.Pass == password {
-				return c.String(http.StatusOK, user.Role)
+type User struct {
+	User string `json:"name"`
+	Pass string `json:"password"`
+}
+
+func login(c echo.Context) error {
+	var user User
+	if err := c.Bind(&user); err != nil {
+		return c.JSON(http.StatusBadRequest, "Invalid data")
+	}
+	payload, err := readDatabase()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	for _, userData := range payload {
+		if userData.User == user.User {
+			if userData.Pass == user.Pass {
+				return c.JSON(http.StatusOK, userData.Role)
 			}
-			return c.String(http.StatusUnauthorized, "Incorrect password")
+			return c.JSON(http.StatusUnauthorized, "Incorrect password")
 		}
 	}
-
-	return c.String(http.StatusNotFound, "User not found")
+	fmt.Println(user)
+	return c.JSON(http.StatusNotFound, "User not found")
 }
 
-func registerUser(c echo.Context) error {
-	name := c.FormValue("name")
-	pwd := c.FormValue("password")
-	role := c.FormValue("role")
-	payload := readDatabase()
-	for _, user := range payload {
-		if user.User == name {
+func register(c echo.Context) error {
+	var user Data
+	if err := c.Bind(&user); err != nil {
+		return c.String(http.StatusBadRequest, "Invalid data")
+	}
+	payload, err := readDatabase()
+	if err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
+	}
+	for _, userData := range payload {
+		if userData.User == user.User {
 			return c.String(http.StatusConflict, "User already Exist")
 		}
 	}
-	newUser := Data{name, pwd, role}
+	newUser := Data{user.User, user.Pass, user.Role}
 	payload = append(payload, newUser)
 
 	newPayload, err := json.Marshal(payload)
@@ -74,7 +88,14 @@ func registerUser(c echo.Context) error {
 func main() {
 	fmt.Println("vim-go")
 	e := echo.New()
-	e.POST("/login", getUserRole)
-	e.POST("/register", registerUser)
+
+	// CORS middleware
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:5173"}, // For frontend's host and port
+		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+	}))
+	e.POST("/login", login)
+	e.POST("/register", register)
 	e.Logger.Fatal(e.Start(":1323"))
 }
