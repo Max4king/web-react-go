@@ -1,12 +1,4 @@
 [
-    {
-        "user": "admin",
-        "pass": "admin",
-        "role": "admin"
-    },
-    {
-        "user": "client",
-        "pass": "client",
-        "role": "client"
-    }
+  { "User": "admin", "Pass": "admin", "Role": "admin" },
+  { "User": "client", "Pass": "client", "Role": "client" }
 ]

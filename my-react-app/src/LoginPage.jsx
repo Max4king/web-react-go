@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from 'react-router-dom';
 import "./LoginPage.css";
 function LoginPage(props) {
   const [name, setName] = useState("");
@@ -6,7 +7,7 @@ function LoginPage(props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [successful, setSuccessful] = useState(false);
-
+  let navigate = useNavigate();
   const handleLogin = async (event) => {
     event.preventDefault();
     setLoading(true);
@@ -21,12 +22,12 @@ function LoginPage(props) {
         body: JSON.stringify({ name: name, password: password }),
       });
 
-      if (response.ok || props.isLogin) {
+      if (response.ok) {
         const data = await response.json(); // Parse JSON only if response is OK
-        console.log("Login successful:", data);
         setSuccessful(true);
-        props.setIsLogin(true);
-        // Handle successful login here, e.g., redirecting to the dashboard
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('token', data);
+        navigate('/dashboard');
       } else {
         const errorData = await response.text(); // Use .text() if the response might not be JSON
         throw new Error(errorData || "Failed to login");
@@ -36,9 +37,10 @@ function LoginPage(props) {
       console.error("Login error:", err);
     } finally {
       setLoading(false);
+      
     }
   };
-
+  
   return (
     <div className="login-container">
       <form className="login-form" onSubmit={handleLogin}>
