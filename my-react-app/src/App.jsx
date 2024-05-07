@@ -9,6 +9,7 @@ import Dashboard from './Dashboard';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('isLoggedIn') === 'true');
+  
   useEffect(() => {
     const updateLoginStatus = () => setIsLoggedIn(localStorage.getItem('isLoggedIn') === 'true');
     window.addEventListener('storage', updateLoginStatus);

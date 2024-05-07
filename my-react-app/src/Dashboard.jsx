@@ -8,7 +8,28 @@ function Dashboard() {
   const [newFirstName, setNewFirstName] = useState("");
   const [newLastName, setNewLastName] = useState("");
   const [newRole, setNewRole] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
+  const getAdminStatus = async () => {
+    try {
+      const response2 = await fetch("http://localhost:1323/api/isadmin", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+      });
+      if (response2.ok) {
+        const data2 = await response2.json(); // Parse JSON only if response is OK
+        setIsAdmin(data2);
+      } else {
+        throw new Error("Failed to fetch admin status");
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
+  };
+  
   const fetchData = async () => {
     setLoading(true);
     setError("");
@@ -33,6 +54,7 @@ function Dashboard() {
   };
 
   useEffect(() => {
+    getAdminStatus();
     fetchData();
   }, []);
 
@@ -62,7 +84,6 @@ function Dashboard() {
       setError(err.message);
     }
   };
-
   if (!localStorage.getItem("isLoggedIn")) {
     return (
       <div className="alert alert-warning">
@@ -73,7 +94,7 @@ function Dashboard() {
 
   return (
     <div className="container mt-5">
-      <h1 className="mb-3">Dashboard</h1>
+      <h1 className="mb-3">{isAdmin && <span>Admin</span> } Dashboard</h1>
       {loading && <div className="alert alert-info">Loading...</div>}
       {error && <div className="alert alert-danger">{error}</div>}
       <form onSubmit={handleAddData}>

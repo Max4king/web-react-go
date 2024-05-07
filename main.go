@@ -250,6 +250,19 @@ func addClientData(c echo.Context) error {
 	return c.JSON(http.StatusOK, "Data added successfully to CSV")
 }
 
+func isAdmin(c echo.Context) error {
+	user, ok := c.Get("user").(*jwt.Token)
+	if !ok || user == nil {
+		return c.JSON(http.StatusUnauthorized, "User not authenticated")
+	}
+	claims := user.Claims.(jwt.MapClaims)
+	role, ok := claims["roles"].(string)
+	if !ok {
+		return c.JSON(http.StatusForbidden, "Invalid user role")
+	}
+	return c.JSON(http.StatusOK, role == "admin")
+}
+
 func main() {
 	e := echo.New()
 	e.Use(middleware.Logger())
@@ -271,6 +284,7 @@ func main() {
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "Authorization"},
 	}))
 	g.GET("/data", getData)
+	g.POST("/isadmin", isAdmin)
 	g.POST("/new/data", addClientData)
 	e.Logger.Fatal(e.Start(":1323"))
 }
