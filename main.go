@@ -203,6 +203,53 @@ func JWTMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
+type CSVData struct {
+	// UserID,FirstName,LastName,Email,Role
+	FirstName string `json:"FirstName"`
+	LastName  string `json:"LastName"`
+	Email     string `json:"Email"`
+	Role      string `json:"Role"`
+}
+
+func appendToCSV(data CSVData) error {
+	// Open the file in append mode. If it doesn't exist, create it.
+	file, err := os.OpenFile("client.csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("error opening the file: %v", err)
+	}
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	record := []string{
+		data.FirstName,
+		data.LastName,
+		data.Email,
+		data.Role,
+	}
+
+	// Write the data
+	if err := writer.Write(record); err != nil {
+		return fmt.Errorf("error writing to CSV: %v", err)
+	}
+
+	return nil
+}
+
+func addClientData(c echo.Context) error {
+	var newData CSVData
+	if err := c.Bind(&newData); err != nil {
+		return c.JSON(http.StatusBadRequest, "Invalid data provided")
+	}
+
+	if err := appendToCSV(newData); err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, "Data added successfully to CSV")
+}
+
 func main() {
 	e := echo.New()
 	e.Use(middleware.Logger())
@@ -224,5 +271,6 @@ func main() {
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "Authorization"},
 	}))
 	g.GET("/data", getData)
+	g.POST("/new/data", addClientData)
 	e.Logger.Fatal(e.Start(":1323"))
 }
